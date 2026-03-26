@@ -3,6 +3,7 @@ import { getTutorSystemPrompt } from '@/lib/prompts'
 import { NextRequest } from 'next/server'
 
 export async function POST(req: NextRequest) {
+  const abortSignal = req.signal
   try {
     const { messages, language } = await req.json()
 
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           for await (const chunk of stream) {
+            if (abortSignal?.aborted) { controller.close(); return }
             const text = chunk.choices[0]?.delta?.content || ''
             if (text) controller.enqueue(encoder.encode(text))
           }
