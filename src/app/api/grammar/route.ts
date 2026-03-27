@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
     } catch {
-      parsed = { corrected: text, explanations: ['Could not parse response'], score: 0 }
+      parsed = { corrected: text, explanations: ['Could not parse response'], score: 0, isCorrect: false }
     }
 
     return new Response(
@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
         original: text,
         corrected: parsed.corrected || text,
         explanations: parsed.explanations || [],
-        score: parsed.score || 0,
+        score: typeof parsed.score === 'number' ? parsed.score : 0,
+        isCorrect: parsed.isCorrect ?? false,
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
