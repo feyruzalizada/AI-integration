@@ -10,7 +10,7 @@ export default function StreamingMessage({ content, isStreaming }: StreamingMess
     <span>
       {content}
       {isStreaming && (
-        <span className="inline-block w-2 h-4 bg-gray-500 ml-0.5 animate-pulse" />
+        <span className="inline-block w-0.5 h-4 bg-gray-500 ml-0.5 animate-pulse rounded-sm" />
       )}
     </span>
   )
