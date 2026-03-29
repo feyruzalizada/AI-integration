@@ -27,6 +27,7 @@ export default function ChatInterface() {
 
   async function sendMessage() {
     if (!input.trim() || isStreaming) return
+    if (input.trim().length > 2000) return
     setError('')
 
     const userMsg: ChatMessage = {
