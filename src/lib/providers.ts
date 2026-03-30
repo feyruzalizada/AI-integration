@@ -38,6 +38,10 @@ export const ACTIVE_MODEL =
 
 export const ACTIVE_LABEL = PROVIDER_CONFIGS[ACTIVE_PROVIDER].label
 
+export const FALLBACK_PROVIDERS: ProviderName[] = (
+  Object.keys(PROVIDER_CONFIGS) as ProviderName[]
+).filter((p) => p !== ACTIVE_PROVIDER)
+
 export function createLLMClient(provider: ProviderName = ACTIVE_PROVIDER): OpenAI {
   const config = PROVIDER_CONFIGS[provider]
   return new OpenAI({
