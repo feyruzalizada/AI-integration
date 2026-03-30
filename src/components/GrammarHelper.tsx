@@ -40,8 +40,9 @@ export default function GrammarHelper() {
   }
 
   function getScoreColor(score: number) {
-    if (score >= 80) return 'text-green-600'
-    if (score >= 60) return 'text-yellow-600'
+    if (score >= 90) return 'text-green-600'
+    if (score >= 70) return 'text-yellow-500'
+    if (score >= 50) return 'text-orange-500'
     return 'text-red-600'
   }
 
