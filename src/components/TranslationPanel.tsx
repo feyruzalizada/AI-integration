@@ -35,7 +35,7 @@ export default function TranslationPanel() {
       const data = await res.json()
       setResult(data)
     } catch {
-      setError('Failed to translate. Is your API key set?')
+      setError('Translation failed. Please check your API key and try again.')
     } finally {
       setLoading(false)
     }
