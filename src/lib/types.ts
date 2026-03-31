@@ -13,6 +13,7 @@ export interface GrammarResult {
   corrected: string
   explanations: string[]
   score: number
+  isCorrect: boolean
 }
 
 export interface TranslationResult {
