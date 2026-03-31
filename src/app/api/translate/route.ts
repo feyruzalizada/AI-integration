@@ -1,4 +1,4 @@
-import { anthropic, MODEL, MAX_TOKENS } from '@/lib/anthropic'
+import { callWithFallback, MODEL, MAX_TOKENS } from '@/lib/anthropic'
 import { getTranslationPrompt } from '@/lib/prompts'
 import { trackRequest } from '@/lib/usage'
 import { NextRequest } from 'next/server'
@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { text, from, to } = await req.json()
     trackRequest('translate', text)
 
-    const response = await anthropic.chat.completions.create({
+    const response = await callWithFallback({
       model: MODEL,
       max_tokens: MAX_TOKENS,
       messages: [{ role: 'user', content: getTranslationPrompt(text, from || 'English', to || 'Spanish') }],

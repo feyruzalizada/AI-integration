@@ -1,6 +1,7 @@
 import { anthropic, MODEL, MAX_TOKENS } from '@/lib/anthropic'
-import { getTutorSystemPrompt } from '@/lib/prompts'
+import { getTutorSystemPrompt, getModerationPrompt } from '@/lib/prompts'
 import { trackRequest } from '@/lib/usage'
+import { flags } from '@/lib/flags'
 import { NextRequest } from 'next/server'
 
 export async function POST(req: NextRequest) {
@@ -8,6 +9,28 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, language } = await req.json()
     trackRequest('chat', messages.map((m: { content: string }) => m.content).join(' '))
+
+    if (flags.moderation && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1]?.content || ''
+      try {
+        const modRes = await anthropic.chat.completions.create({
+          model: MODEL,
+          max_tokens: 100,
+          messages: [{ role: 'user', content: getModerationPrompt(lastMsg) }],
+        })
+        const modContent = modRes.choices[0].message.content || ''
+        const modMatch = modContent.match(/\{[\s\S]*\}/)
+        if (modMatch) {
+          const modParsed = JSON.parse(modMatch[0])
+          if (!modParsed.safe) {
+            return new Response(
+              JSON.stringify({ error: modParsed.reason || 'Message not allowed' }),
+              { status: 400, headers: { 'Content-Type': 'application/json' } }
+            )
+          }
+        }
+      } catch {}
+    }
 
     const stream = await anthropic.chat.completions.create({
       model: MODEL,
