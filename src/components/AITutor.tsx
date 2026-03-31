@@ -36,6 +36,11 @@ const QUICK_PROMPTS = [
     label: 'Common phrases',
     prompt: 'What are the 5 most useful phrases for a beginner?',
   },
+  {
+    icon: '🎯',
+    label: 'Daily routine vocabulary',
+    prompt: 'Teach me vocabulary for describing my daily routine',
+  },
 ]
 
 export default function AITutor({ onPrompt, language }: AITutorProps) {
