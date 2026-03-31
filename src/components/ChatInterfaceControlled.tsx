@@ -41,11 +41,11 @@ export default function ChatInterfaceControlled({
   }, [externalInput])
 
   useEffect(() => {
-    if (pendingSend.current && input && !isStreaming) {
+    if (pendingSend.current && input.trim() && !isStreaming) {
       pendingSend.current = false
       sendMessageWith(input)
     }
-  }, [input])
+  }, [input, isStreaming])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
