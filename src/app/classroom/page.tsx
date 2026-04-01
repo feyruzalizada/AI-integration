@@ -43,7 +43,7 @@ export default function ClassroomPage() {
         </Link>
       </header>
 
-      <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 65px)' }}>
+      <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100dvh - 65px)' }}>
         <div className="flex flex-col flex-1 min-w-0">
           <div className="bg-white border-b border-gray-200 px-4">
             <div className="flex gap-1">
