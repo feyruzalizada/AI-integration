@@ -28,8 +28,3 @@ export interface ModerationResult {
   reason?: string
 }
 
-export interface LLMUsageStats {
-  totalRequests: number
-  totalTokens: number
-  provider: string
-}

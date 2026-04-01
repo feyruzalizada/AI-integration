@@ -42,7 +42,7 @@ export default function HomePage() {
           An AI-powered language learning platform using Claude. Practice speaking, check your grammar, and translate — all in one place.
         </p>
         <p className="text-sm text-green-200 mb-10">
-          Powered by Anthropic Claude Haiku • Streaming responses • 4 languages
+          Powered by Groq • Llama 3.3 70B • Streaming responses • 4 languages
         </p>
 
         <Link
@@ -82,7 +82,7 @@ export default function HomePage() {
 
       <div className="text-center pb-12">
         <p className="text-green-200 text-sm">
-          Set your <code className="bg-green-700/50 rounded px-1.5 py-0.5">ANTHROPIC_API_KEY</code> in{' '}
+          Set your <code className="bg-green-700/50 rounded px-1.5 py-0.5">GROQ_API_KEY</code> in{' '}
           <code className="bg-green-700/50 rounded px-1.5 py-0.5">.env.local</code> to get started
         </p>
       </div>

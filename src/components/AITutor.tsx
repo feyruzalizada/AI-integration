@@ -77,7 +77,7 @@ export default function AITutor({ onPrompt, language }: AITutorProps) {
       <div className="mt-auto pt-4 border-t border-gray-700">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className="w-2 h-2 bg-[#58CC02] rounded-full animate-pulse" />
-          <span>Powered by Claude Haiku</span>
+          <span>Powered by Groq (Llama 3.3)</span>
         </div>
         <p className="text-xs text-gray-600 mt-2">
           Tip: Click any prompt above or type your own question in the chat.
