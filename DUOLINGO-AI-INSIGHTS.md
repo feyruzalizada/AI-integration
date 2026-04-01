@@ -1,71 +1,86 @@
 # What I Learned Building This
 
-These are my honest notes from building the Duolingo AI Classroom. Writing this down so I remember what actually tripped me up vs what was easy.
+Honest notes from building the Duolingo AI Classroom. What actually tripped me up vs what was easy.
 
-## The Anthropic SDK is pretty straightforward
+## The OpenAI SDK works with any OpenAI-compatible API
 
-Setting up the client is two lines. The hardest part was figuring out that you need to iterate over `stream` events and check `event.type === 'content_block_delta'` and then `event.delta.type === 'text_delta'` to actually get the text. The nesting felt weird at first but it makes sense once you realize Claude can return different types of content (text, tool calls, thinking blocks, etc.).
+The project uses the `openai` npm package — not just for OpenAI, but as a universal client for any provider that follows the OpenAI API format. Groq, Together AI, and others all implement the same interface. You just change the `baseURL` and `apiKey`:
 
 ```typescript
-for await (const event of stream) {
-  if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-    controller.enqueue(encoder.encode(event.delta.text))
-  }
-}
+const client = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1',
+})
 ```
+
+This is why the provider abstraction in `providers.ts` works — one SDK, multiple backends.
 
 ## Streaming from a Next.js API route to the browser
 
 This was the part I was most unsure about. The trick is:
 
-1. The route returns a `new Response(readable, ...)` where `readable` is a `ReadableStream`
-2. On the frontend, you get the response body reader with `res.body.getReader()`
-3. You loop calling `reader.read()` until `done` is true
-4. Each `value` is a `Uint8Array` so you need `TextDecoder` to turn it into a string
+1. Create the LLM call with `stream: true`
+2. The route returns `new Response(readable, ...)` where `readable` is a `ReadableStream`
+3. On the frontend, get the response body reader with `res.body.getReader()`
+4. Loop calling `reader.read()` until `done` is true
+5. Each `value` is a `Uint8Array` — use `TextDecoder` to turn it into a string
 
-The abort controller was also important — without it there's no way to stop a response that's taking forever. You just pass the `AbortController.signal` to the fetch and call `abort()` when the user clicks Stop.
+```typescript
+for await (const chunk of stream) {
+  const text = chunk.choices[0]?.delta?.content || ''
+  if (text) controller.enqueue(encoder.encode(text))
+}
+```
+
+The `delta.content` field is where the text comes in — one or a few characters at a time.
+
+## Choosing Groq with Llama 3.3 70B
+
+I picked Groq because:
+- It has a generous free tier — good for testing
+- Llama 3.3 70B is fast and capable enough for educational responses
+- The Groq API follows the OpenAI spec exactly, so switching providers later is trivial
+- Latency is very low — you see the first token almost immediately
+
+The tradeoff is that Groq has rate limits on the free tier. For a production app you would pay for higher limits or use a different provider.
 
 ## JSON prompting is finicky
 
-For grammar, translation, and moderation I'm asking Claude to "respond with JSON only". This works most of the time but Claude sometimes adds extra text around the JSON. The fix is wrapping the `JSON.parse()` in a try/catch and having a fallback. Probably the right solution long-term is to use structured outputs, but for a student project this is fine.
+For grammar, translation, and moderation I ask the LLM to "respond with JSON only". This works most of the time but the model sometimes wraps the JSON in markdown code blocks or adds extra text. The fix:
 
-## Choosing Claude Haiku
+```typescript
+const jsonMatch = content.match(/\{[\s\S]*\}/)
+parsed = JSON.parse(jsonMatch ? jsonMatch[0] : content)
+```
 
-I picked `claude-haiku-4-5-20251001` because:
-- It's way cheaper than Sonnet or Opus
-- For a language tutoring app with short responses, you don't need a massive model
-- It's faster, which matters a lot for streaming (you start seeing text sooner)
+Find the first `{...}` in the response and parse that. Always wrap in try/catch with a fallback.
 
-The tradeoff is response quality isn't as high. For grammar explanations and translation it's totally fine. For really deep linguistic analysis you might want Sonnet.
+## Provider abstraction saved time
+
+Building `providers.ts` early meant I could experiment with different models without touching any other file. Just change `LLM_PROVIDER` in `.env.local` and the whole app switches. This also made adding fallover straightforward — if the primary provider fails, retry with the next one in the list.
+
+## The moderation endpoint needed to be connected
+
+I built the moderation route early but forgot to wire it into the chat flow. The endpoint existed but nothing called it. Later connected it inside `/api/chat` — before sending to the LLM, check the last user message. If unsafe, return 400 immediately. Gating at the API route level means even direct API calls get filtered.
 
 ## System prompts matter a lot
 
-The system prompt for the tutor is short but makes a huge difference:
+The system prompt for the tutor is short but makes a difference:
+
 > "You are a friendly language tutor helping students learn Spanish. Keep responses concise and educational. Always encourage the student. When correcting mistakes, explain why gently."
 
-Without "keep responses concise" you get walls of text. Without "explain why gently" the corrections feel harsh. Little things like this change the whole vibe of the app.
+Without "keep responses concise" you get walls of text. Without "explain why gently" corrections feel harsh. Small phrasing changes affect the whole tone.
 
 ## What didn't work the first time
 
-- **The classroom page was a mess at first** — I tried to make ChatInterface accept external prompts (from the sidebar) and ended up with a weird chain of wrapper components. Ended up just making a `ChatInterfaceControlled` version that accepts `externalInput` as a prop. Still not perfect but it works.
-
-- **The streaming cursor** — I wanted a blinking cursor that appears while text is streaming. Ended up as a simple animated div using Tailwind's `animate-pulse`. Good enough.
-
-- **Tab state persistence** — if you switch from Chat to Grammar and back, the chat history is gone because I'm conditionally rendering the component. Should probably lift the chat state to the parent, but it's a demo app so whatever.
+- **External prompt injection** — getting AITutor sidebar clicks to trigger a chat send was tricky. Ended up using a `pendingSend` ref and two `useEffect` hooks that coordinate. It works but is not clean.
+- **Tab state** — switching tabs unmounts components, losing form state. Should lift state to the parent, but left it for now.
+- **Streaming translations** — initially translations were batch JSON. Added streaming later, which required changing the route to stream and adding a `streaming` state to accumulate the raw text before parsing the JSON at the end.
 
 ## If I were to keep building this
 
-- Store chat history in localStorage so it persists between page refreshes
-- Add a speech-to-text input using the Web Speech API
-- Actually use the moderation endpoint — right now it exists but isn't connected to the chat UI
-- Add more languages
-- Streak tracking and progress like actual Duolingo
-- Use structured outputs from the Anthropic SDK instead of prompt-based JSON parsing
-
-## The Anthropic SDK docs
-
-The docs at https://docs.anthropic.com are actually pretty good. The streaming examples are clear. The TypeScript types are solid — everything is well-typed so you get good autocomplete. The main thing that confused me was the model naming — I thought `claude-haiku-4-5` was the right ID but the full versioned string (`claude-haiku-4-5-20251001`) is what you actually need to pass.
-
-## Cost
-
-For testing I probably made 50-100 API calls. Each chat message is maybe 200-500 tokens in + 200-400 tokens out. At Haiku pricing that's fractions of a cent per message. The whole testing session probably cost less than $0.10. Streaming doesn't cost extra, you just pay for the tokens.
+- Store chat history in localStorage so it persists between refreshes
+- Use structured outputs from the API instead of prompt-based JSON parsing
+- Actually connect the difficulty assessment to adaptive prompt difficulty
+- Add real cost tracking with actual token counts from the API response
+- Speech-to-text input using the Web Speech API
