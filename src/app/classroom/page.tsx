@@ -1,11 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense, lazy } from 'react'
 import ChatInterfaceControlled from '@/components/ChatInterfaceControlled'
-import GrammarHelper from '@/components/GrammarHelper'
-import TranslationPanel from '@/components/TranslationPanel'
 import AITutor from '@/components/AITutor'
 import Link from 'next/link'
+
+const GrammarHelper = lazy(() => import('@/components/GrammarHelper'))
+const TranslationPanel = lazy(() => import('@/components/TranslationPanel'))
+
+function TabFallback() {
+  return (
+    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+      Loading...
+    </div>
+  )
+}
 
 type Tab = 'chat' | 'grammar' | 'translation'
 
@@ -74,12 +83,16 @@ export default function ClassroomPage() {
             </div>
             {activeTab === 'grammar' && (
               <div className="h-full overflow-y-auto p-6 max-w-2xl mx-auto">
-                <GrammarHelper />
+                <Suspense fallback={<TabFallback />}>
+                  <GrammarHelper />
+                </Suspense>
               </div>
             )}
             {activeTab === 'translation' && (
               <div className="h-full overflow-y-auto p-6 max-w-2xl mx-auto">
-                <TranslationPanel />
+                <Suspense fallback={<TabFallback />}>
+                  <TranslationPanel />
+                </Suspense>
               </div>
             )}
           </div>
