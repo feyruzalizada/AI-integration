@@ -1,9 +1,5 @@
-import OpenAI from 'openai'
+import { createLLMClient, ACTIVE_PROVIDER, ACTIVE_MODEL } from './providers'
 
-export const anthropic = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: 'https://api.groq.com/openai/v1',
-})
-
-export const MODEL = 'llama-3.3-70b-versatile'
+export const anthropic = createLLMClient(ACTIVE_PROVIDER)
+export const MODEL = ACTIVE_MODEL
 export const MAX_TOKENS = 1024
