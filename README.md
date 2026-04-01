@@ -1,90 +1,65 @@
-# Duolingo AI Classroom
+# Welcome to 06 Ai Integration
 
-An AI-powered language learning app built with Next.js. Chat with an AI tutor, check your grammar, and translate between languages — all in real-time.
+## Task
 
-## What it does
+Language learning apps rely on static content and rigid exercises.
+The challenge is making a real-time AI tutor that feels responsive —
+streaming answers as they generate, checking grammar with explanations,
+and translating with cultural context, all without page reloads.
+The added complexity is keeping the LLM provider swappable so the app
+is not locked into a single API or pricing model.
 
-- **Chat with an AI tutor** — ask questions about Spanish, French, German, or Japanese. Responses stream in real-time.
-- **Grammar checker** — paste your text and get corrections with explanations, not just red underlines
-- **Translation** — translates between English and the four languages, with cultural notes and alternative phrasings
-- **AI tutor sidebar** — quick prompts to get started without typing
+## Description
 
-## Tech stack
+Built a full-stack AI classroom on top of Next.js App Router with four
+core features: a streaming chat tutor, a grammar checker, a translation
+panel, and an AI tutor sidebar with quick prompts. LLM calls go through
+a provider abstraction layer (src/lib/providers.ts) that supports Groq,
+OpenAI, and Together AI — switchable via a single env variable. Streaming
+is handled with native ReadableStream and AbortController so users can
+stop a response mid-generation. All API routes track usage and expose
+stats at GET /api/usage. The default provider is Groq with Llama 3.3 70B
+because it is fast and has a free tier, which made development cheap.
 
-- Next.js 16 with App Router + TypeScript
-- Tailwind CSS
-- `openai` npm package (used as an OpenAI-compatible client)
-- **Default provider: Groq** — `llama-3.3-70b-versatile` (fast, free tier available)
-- Supports switching to OpenAI or Together AI via env vars
-- Native `ReadableStream` for streaming — no extra libraries
-
-## Setup
-
-1. Clone the repo
-2. `npm install`
-3. Copy `.env.local.example` to `.env.local` and add your API key
-4. `npm run dev`
-5. Open http://localhost:3000
-
-Get a free Groq API key at https://console.groq.com
-
-## Provider switching
-
-The app supports multiple LLM providers without code changes. Set `LLM_PROVIDER` in `.env.local`:
+## Installation
 
 ```
-# Use OpenAI instead of Groq
+git clone <repo-url>
+cd duolingo-ai-classroom
+npm install
+cp .env.local.example .env.local
+# Add your GROQ_API_KEY (free at https://console.groq.com)
+npm run dev
+```
+
+Open http://localhost:3000 in your browser.
+
+To switch providers, set LLM_PROVIDER in .env.local:
+
+```
 LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-
-# Use Together AI
-LLM_PROVIDER=together
-TOGETHER_API_KEY=...
 ```
 
-See `.env.local.example` for all options.
+Supported values: groq (default), openai, together
 
-## Project structure
+## Usage
 
 ```
-src/
-├── app/
-│   ├── api/
-│   │   ├── chat/route.ts        streaming chat endpoint
-│   │   ├── grammar/route.ts     grammar check endpoint
-│   │   ├── translate/route.ts   translation endpoint
-│   │   ├── moderate/route.ts    content moderation endpoint
-│   │   └── usage/route.ts       usage stats endpoint (GET)
-│   ├── classroom/page.tsx       main classroom page with tabs
-│   └── page.tsx                 landing page
-├── components/
-│   ├── ChatInterfaceControlled.tsx  chat UI with streaming + abort
-│   ├── StreamingMessage.tsx         renders streaming text with cursor
-│   ├── GrammarHelper.tsx            grammar check panel
-│   ├── TranslationPanel.tsx         translation UI
-│   └── AITutor.tsx                  sidebar with quick prompts
-└── lib/
-    ├── providers.ts   provider abstraction (Groq, OpenAI, Together AI)
-    ├── anthropic.ts   active LLM client (uses providers.ts)
-    ├── usage.ts       request tracking and stats
-    ├── prompts.ts     prompt templates
-    └── types.ts       TypeScript types
+npm run dev       Start the development server on localhost:3000
+npm run build     Build for production
+npm run start     Start the production server
 ```
 
-## Usage tracking
+Open the classroom at http://localhost:3000/classroom
 
-Hit `GET /api/usage` to see request counts and estimated token usage since the server started:
+- Chat tab: type a question in Spanish, French, German, or Japanese
+- Grammar tab: paste text and get a score with corrections and explanations
+- Translation tab: pick a language pair and translate with cultural notes
+- Sidebar: click a quick prompt to send it directly to the chat
 
-```json
-{
-  "provider": "groq",
-  "model": "llama-3.3-70b-versatile",
-  "totalRequests": 12,
-  "totalTokens": 3840,
-  "byEndpoint": { "chat": 8, "grammar": 2, "translate": 2 }
-}
-```
+Check live usage stats at http://localhost:3000/api/usage
 
-## Streaming implementation
+## The Core Team
 
-The chat uses `ReadableStream` and `TextDecoder` to pipe LLM output directly to the browser. The grammar and translation routes don't stream because they return structured JSON. There's an `AbortController` so you can cancel a response mid-stream.
+Made at Qwasar SV -- Software Engineering School <img alt='Qwasar SV -- Software Engineering School Logo' src='https://storage.googleapis.com/qwasar-public/qwasar-logo_50x50.png' width='20px' />
