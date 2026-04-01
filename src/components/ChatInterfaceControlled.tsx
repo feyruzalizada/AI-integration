@@ -34,6 +34,7 @@ export default function ChatInterfaceControlled({
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const pendingSend = useRef(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (externalInput && externalInput !== input) {
@@ -74,6 +75,7 @@ export default function ChatInterfaceControlled({
     setMessages(updatedMessages)
     setInput('')
     setIsStreaming(true)
+    textareaRef.current?.focus()
     setStreamingContent('')
 
     const controller = new AbortController()
@@ -124,6 +126,7 @@ export default function ChatInterfaceControlled({
     } finally {
       setIsStreaming(false)
       abortRef.current = null
+      textareaRef.current?.focus()
     }
   }
 
@@ -267,10 +270,11 @@ export default function ChatInterfaceControlled({
       <div className="p-4 border-t border-gray-200">
         <div className="flex gap-2">
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder={`Type in ${language} or ask a question...`}
+            placeholder={`Type in ${language.charAt(0).toUpperCase() + language.slice(1)} or ask a question...`}
             className="flex-1 resize-none border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#58CC02] min-h-[44px] max-h-32"
             rows={1}
             disabled={isStreaming}
