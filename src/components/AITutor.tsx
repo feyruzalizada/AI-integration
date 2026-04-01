@@ -74,6 +74,21 @@ export default function AITutor({ onPrompt, language }: AITutorProps) {
         </div>
       </div>
 
+      <div className="mb-4">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          Level Check
+        </p>
+        <button
+          onClick={() => onPrompt('Based on our conversation so far, what is my current language level? Give me a brief honest assessment and what I should focus on next.')}
+          className="w-full text-left px-3 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors group"
+        >
+          <span className="mr-2">📊</span>
+          <span className="text-sm text-gray-200 group-hover:text-white transition-colors">
+            Assess my level
+          </span>
+        </button>
+      </div>
+
       <div className="mt-auto pt-4 border-t border-gray-700">
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className="w-2 h-2 bg-[#58CC02] rounded-full animate-pulse" />

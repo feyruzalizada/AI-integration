@@ -28,6 +28,9 @@ export default function ChatInterfaceControlled({
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [searchResult, setSearchResult] = useState('')
+  const [searching, setSearching] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const pendingSend = useRef(false)
@@ -87,7 +90,10 @@ export default function ChatInterfaceControlled({
         signal: controller.signal,
       })
 
-      if (!res.ok) throw new Error('Failed to get response')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to get response')
+      }
       if (!res.body) throw new Error('No response body')
 
       const reader = res.body.getReader()
@@ -112,7 +118,7 @@ export default function ChatInterfaceControlled({
       setStreamingContent('')
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
-        setError('Something went wrong. Make sure your API key is set.')
+        setError(err.message || 'Something went wrong. Make sure your API key is set.')
       }
       setStreamingContent('')
     } finally {
@@ -127,6 +133,28 @@ export default function ChatInterfaceControlled({
 
   function abort() {
     abortRef.current?.abort()
+  }
+
+  async function searchConversation() {
+    if (!search.trim() || messages.length === 0) return
+    setSearching(true)
+    setSearchResult('')
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: search,
+          messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      })
+      const data = await res.json()
+      setSearchResult(data.result || '')
+    } catch {
+      setSearchResult('Search failed.')
+    } finally {
+      setSearching(false)
+    }
   }
 
   function handleKey(e: React.KeyboardEvent) {
@@ -153,6 +181,33 @@ export default function ChatInterfaceControlled({
           ))}
         </select>
       </div>
+
+      {messages.length > 0 && (
+        <div className="px-4 py-2 border-b border-gray-100 bg-gray-50">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && searchConversation()}
+              placeholder="Search this conversation..."
+              className="flex-1 text-sm text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-[#58CC02]"
+            />
+            <button
+              onClick={searchConversation}
+              disabled={searching || !search.trim()}
+              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-500 rounded-lg text-sm hover:bg-gray-100 transition-colors disabled:opacity-50"
+            >
+              {searching ? '...' : '🔍'}
+            </button>
+          </div>
+          {searchResult && (
+            <p className="mt-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg px-3 py-2">
+              {searchResult}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
