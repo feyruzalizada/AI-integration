@@ -1,10 +1,12 @@
 import { anthropic, MODEL, MAX_TOKENS } from '@/lib/anthropic'
 import { getTranslationPrompt } from '@/lib/prompts'
+import { trackRequest } from '@/lib/usage'
 import { NextRequest } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
     const { text, from, to } = await req.json()
+    trackRequest('translate', text)
 
     const response = await anthropic.chat.completions.create({
       model: MODEL,

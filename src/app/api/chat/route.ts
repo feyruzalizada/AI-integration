@@ -1,11 +1,13 @@
 import { anthropic, MODEL, MAX_TOKENS } from '@/lib/anthropic'
 import { getTutorSystemPrompt } from '@/lib/prompts'
+import { trackRequest } from '@/lib/usage'
 import { NextRequest } from 'next/server'
 
 export async function POST(req: NextRequest) {
   const abortSignal = req.signal
   try {
     const { messages, language } = await req.json()
+    trackRequest('chat', messages.map((m: { content: string }) => m.content).join(' '))
 
     const stream = await anthropic.chat.completions.create({
       model: MODEL,
