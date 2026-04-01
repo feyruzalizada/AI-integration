@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { TranslationResult } from '@/lib/types'
+import StreamingMessage from './StreamingMessage'
 
 const LANGUAGES = [
   'English',
@@ -17,6 +18,7 @@ export default function TranslationPanel() {
   const [to, setTo] = useState('Spanish')
   const [result, setResult] = useState<TranslationResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [streaming, setStreaming] = useState('')
   const [error, setError] = useState('')
 
   async function translate() {
@@ -24,6 +26,7 @@ export default function TranslationPanel() {
     setLoading(true)
     setError('')
     setResult(null)
+    setStreaming('')
 
     try {
       const res = await fetch('/api/translate', {
@@ -32,8 +35,38 @@ export default function TranslationPanel() {
         body: JSON.stringify({ text: sourceText, from, to }),
       })
       if (!res.ok) throw new Error('Request failed')
-      const data = await res.json()
-      setResult(data)
+      if (!res.body) throw new Error('No response body')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        accumulated += chunk
+        setStreaming(accumulated)
+      }
+
+      try {
+        const jsonMatch = accumulated.match(/\{[\s\S]*\}/)
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : accumulated)
+        setResult({
+          original: sourceText,
+          translated: parsed.translated || '',
+          culturalNotes: parsed.culturalNotes || '',
+          alternatives: parsed.alternatives || [],
+        })
+      } catch {
+        setResult({
+          original: sourceText,
+          translated: accumulated,
+          culturalNotes: '',
+          alternatives: [],
+        })
+      }
+      setStreaming('')
     } catch {
       setError('Translation failed. Please check your API key and try again.')
     } finally {
@@ -105,6 +138,15 @@ export default function TranslationPanel() {
 
       {error && (
         <div className="text-red-500 text-sm bg-red-50 rounded-lg p-3">{error}</div>
+      )}
+
+      {streaming && !result && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Translating...</p>
+          <p className="text-sm text-gray-700">
+            <StreamingMessage content={streaming} isStreaming />
+          </p>
+        </div>
       )}
 
       {result && (
